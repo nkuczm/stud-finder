@@ -1,0 +1,180 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no">
+  <meta name="theme-color" content="#111216">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <title>Stud Finder</title>
+  <link rel="manifest" href="manifest.webmanifest">
+  <link rel="icon" href="icon.svg" type="image/svg+xml">
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+  <!-- ───────────── Home ───────────── -->
+  <section id="home" class="screen active">
+    <header class="hero">
+      <div class="logo" aria-hidden="true">
+        <svg viewBox="0 0 64 64"><rect x="6" y="6" width="52" height="52" rx="12" fill="none" stroke="currentColor" stroke-width="3"/><rect x="18" y="10" width="7" height="44" rx="2" fill="#ff9a3c"/><rect x="39" y="10" width="7" height="44" rx="2" fill="#ff9a3c"/><circle cx="32" cy="32" r="4" fill="#5aa9ff"/></svg>
+      </div>
+      <h1>Stud Finder</h1>
+      <p class="tag">Find studs with sound, magnetism and AR — no extra hardware.</p>
+    </header>
+
+    <div class="cards">
+      <button class="card primary" id="start-ar">
+        <span class="card-title">AR Knock Map</span>
+        <span class="card-body">Aim the crosshair, knock on the wall there. Hollow spots boom, studs “tock”. Every knock is pinned to the wall and the stud grid is fitted and drawn over the camera.</span>
+        <span class="card-cta">Start AR scan →</span>
+      </button>
+      <button class="card" id="start-contact">
+        <span class="card-title">Contact Scanner</span>
+        <span class="card-body">Hold the phone flat on the wall and slide it. <b>Metal</b> mode senses the drywall screws in each stud through the magnetometer. <b>Echo</b> mode (experimental) chirps and listens for the damping of a stud.</span>
+        <span class="card-cta">Start scanner →</span>
+      </button>
+      <a class="card ghost" href="?demo" id="start-demo">
+        <span class="card-title">Try the demo</span>
+        <span class="card-body">No sensors needed: a simulated wall with hidden studs. Drag to look around, tap “Knock” to probe.</span>
+      </a>
+    </div>
+
+    <details class="how">
+      <summary>How it works</summary>
+      <ul>
+        <li><b>Knock acoustics.</b> Drywall over a cavity vibrates like a drum skin: more energy below 400 Hz and a longer ring. Over a stud the panel is pinned, so the knock is shorter and brighter. Scores are relative to your other knocks, so the wall, your knuckle and the room cancel out.</li>
+        <li><b>Grid fitting.</b> Studs sit at 16″ or 24″ centres. Instead of trusting any single knock, the app searches for the stud grid that best explains all of them, plus any clues you add (an outlet box is always nailed to a stud's side).</li>
+        <li><b>Sonar ranging.</b> For correct AR scale the app measures your distance to the wall by playing a short chirp and timing its echo.</li>
+        <li><b>Magnetic screws.</b> Steel screws hold the drywall to every stud. Slide the phone over them and the compass gets bent while the gyro doesn't. That disagreement is the signal.</li>
+        <li><b>AR overlay.</b> The gyro tracks where the camera points, so knocks and studs stay pinned to the wall while you look around. Drag to re-align after you step sideways.</li>
+      </ul>
+      <p class="fine">Use it as a guide, and confirm with a small nail or magnet before drilling. Avoid drilling near outlets, switches and plumbing.</p>
+    </details>
+    <p class="fine center" id="secure-note"></p>
+  </section>
+
+  <!-- ───────────── AR ───────────── -->
+  <section id="ar" class="screen">
+    <video id="cam" playsinline muted autoplay></video>
+    <canvas id="overlay"></canvas>
+    <div class="crosshair" aria-hidden="true"><span></span></div>
+
+    <div class="hud top">
+      <button class="icon-btn" data-back aria-label="Back">‹</button>
+      <div class="chips">
+        <div class="chip" id="fit-chip">Knock at the crosshair</div>
+        <div class="chip small"><span class="meter"><span id="mic-meter"></span></span><span id="knock-count">0 knocks</span></div>
+      </div>
+      <button class="icon-btn" id="open-settings" aria-label="Settings">⚙</button>
+    </div>
+
+    <div class="coach" id="coach">
+      <h2>Map the wall by knocking</h2>
+      <ol>
+        <li>Stand an arm's length from the wall, phone held still in one hand.</li>
+        <li>Put the <b>crosshair</b> on the wall and knock right there with a knuckle.</li>
+        <li>Move the crosshair about 2″ (5 cm) sideways and knock again. Cover at least 3–4 ft (1 m+).</li>
+        <li>Keep your knocks the same strength. Pivot the phone; don't walk.</li>
+      </ol>
+      <p class="fine">Tip: open ⚙ and tap <b>Measure with sonar</b> first so the scale is right.</p>
+      <button class="btn primary" id="coach-ok">Got it</button>
+    </div>
+
+    <div class="toast" id="toast" role="status"></div>
+
+    <div class="legend"><span class="sw hollow"></span>hollow <span class="sw solid"></span>solid <span class="sw stud"></span>stud</div>
+
+    <div class="hud bottom">
+      <button class="btn" id="undo">Undo</button>
+      <button class="btn" id="clue-btn">+ Clue</button>
+      <button class="btn primary" id="sim-knock" hidden>Knock</button>
+      <button class="btn" id="clear">Clear</button>
+    </div>
+
+    <div class="sheet" id="clue-menu" hidden>
+      <p class="sheet-title">Add a clue at the crosshair</p>
+      <button class="btn block" data-clue="stud">✚ Confirmed stud (magnet / nail found it)</button>
+      <button class="btn block" data-clue="outlet">⏻ Centre of an outlet or switch</button>
+      <button class="btn block" data-clue="corner">⌐ Inside corner / door frame edge</button>
+      <button class="btn block ghost" id="clue-cancel">Cancel</button>
+    </div>
+
+    <dialog id="settings">
+      <form method="dialog">
+        <h2>AR settings</h2>
+        <label>Distance to wall <output id="dist-out"></output>
+          <input type="range" id="distance" min="20" max="200" step="1">
+        </label>
+        <button type="button" class="btn block" id="sonar">📡 Measure with sonar</button>
+        <p class="fine" id="sonar-out">Hold the phone still, camera facing the wall, and keep the room quiet.</p>
+        <label>Camera field of view <output id="fov-out"></output>
+          <input type="range" id="fov" min="45" max="95" step="1">
+        </label>
+        <p class="fine">If marks slide when you rotate the phone, adjust this until they stay put.</p>
+        <label>Stud spacing
+          <select id="spacing">
+            <option value="auto">Auto (16″ or 24″)</option>
+            <option value="16in">16″ on centre</option>
+            <option value="24in">24″ on centre</option>
+            <option value="400mm">400 mm</option>
+            <option value="600mm">600 mm</option>
+          </select>
+        </label>
+        <label>Units
+          <select id="units">
+            <option value="imperial">Inches</option>
+            <option value="metric">Centimetres</option>
+          </select>
+        </label>
+        <label>Knock sensitivity <output id="sens-out"></output>
+          <input type="range" id="sensitivity" min="1" max="10" step="1">
+        </label>
+        <div class="row">
+          <button type="button" class="btn" id="square">Square to wall</button>
+          <button type="button" class="btn" id="realign">Reset alignment</button>
+        </div>
+        <button class="btn primary block" value="close">Done</button>
+      </form>
+    </dialog>
+  </section>
+
+  <!-- ───────────── Contact ───────────── -->
+  <section id="contact" class="screen">
+    <div class="hud top static">
+      <button class="icon-btn" data-back aria-label="Back">‹</button>
+      <div class="seg" role="tablist">
+        <button role="tab" class="active" data-mode="metal">Metal</button>
+        <button role="tab" data-mode="echo">Echo <small>β</small></button>
+      </div>
+      <button class="icon-btn" id="sound-toggle" aria-label="Toggle sound">🔊</button>
+    </div>
+
+    <div class="gauge" id="gauge">
+      <div class="ring"><div class="fill" id="gauge-fill"></div></div>
+      <div class="readout">
+        <div class="big" id="gauge-value">–</div>
+        <div class="unit" id="gauge-unit"></div>
+        <div class="state" id="gauge-state">Starting…</div>
+      </div>
+    </div>
+
+    <canvas id="chart"></canvas>
+
+    <div class="controls">
+      <button class="btn primary block" id="calibrate">Calibrate on a hollow spot</button>
+      <label>Threshold <output id="thr-out"></output>
+        <input type="range" id="threshold" min="0.5" max="20" step="0.5">
+      </label>
+      <p class="fine" id="contact-source"></p>
+      <div class="tips" id="tips-metal">
+        <b>How:</b> lay the phone flat on the wall, screen facing you. Calibrate, then slide it slowly sideways without rotating it. Screws are spaced about 12″ (30 cm) apart up each stud, so sweep in a slow zig-zag. Where the reading spikes there's a screw, and the stud runs vertically through it. The magnetometer usually sits near the top of the phone.
+      </div>
+      <div class="tips" id="tips-echo" hidden>
+        <b>Experimental.</b> Press the phone's back firmly to the wall over a spot you know is hollow and calibrate. Then slide 1″ (2–3 cm) at a time, pausing for a probe at each spot. A sustained rise means the wall behaves differently there, which may be a stud. Works best in a quiet room. On Android the vibration motor adds a second channel.
+      </div>
+    </div>
+  </section>
+
+  <script type="module" src="js/main.js"></script>
+</body>
+</html>

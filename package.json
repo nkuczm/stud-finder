@@ -1,0 +1,11 @@
+{
+  "name": "stud-finder",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "Phone stud finder web app: acoustic knock mapping, sonar ranging, magnetic screw detection and an AR overlay.",
+  "scripts": {
+    "test": "node --test tests/*.test.js",
+    "serve": "python3 -m http.server 8080"
+  }
+}
